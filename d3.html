@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotating Chord Diagram with D3.js</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chart-container {
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chart-container">
+        <svg id="chart"></svg>
+    </div>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Sample data
+            const data = [
+                [0, 30, 20, 50], 
+                [30, 0, 10, 5], 
+                [20, 10, 0, 15], 
+                [50, 5, 15, 0],  
+            ];
+
+            const width = 900;
+            const height = 900;
+            const outerRadius = Math.min(width, height) / 2 - 10;
+            const innerRadius = outerRadius - 20;
+
+            const svg = d3.select("#chart")
+                .attr("width", width)
+                .attr("height", height)
+                .append("g")
+                .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+
+            
+            const color = d3.scaleOrdinal()
+                .domain(d3.range(data.length))
+                .range(["#93c3d3", "#f4a582", "#b3b3cc", "#fddbc7"]);
+
+            const chord = d3.chord()
+                .padAngle(0.05)
+                .sortSubgroups(d3.descending)
+                .sortChords(d3.descending);
+
+            const arcs = chord(data);
+
+            const arc = d3.arc()
+                .innerRadius(innerRadius)
+                .outerRadius(outerRadius);
+
+            const ribbon = d3.ribbon()
+                .radius(innerRadius);
+
+            const group = svg.append("g")
+                .selectAll("g")
+                .data(arcs.groups)
+                .enter().append("g");
+
+            group.append("path")
+                .attr("class", "arc")
+                .style("fill", (d) => color(d.index))
+                .attr("d", arc)
+                .transition()
+                .duration(30000) 
+                .attrTween("transform", function (d) {
+                    const startAngle = d.startAngle;
+                    const endAngle = d.startAngle + d.value;
+                    return function (t) {
+                        const interpolate = d3.interpolateNumber(startAngle, endAngle);
+                        const angle = interpolate(t);
+                        return `rotate(${angle * 180 / Math.PI})`;
+                    };
+                });
+
+            const chordPaths = svg.append("g")
+                .selectAll("path")
+                .data(arcs)
+                .enter().append("path")
+                .attr("class", "chord")
+                .style("fill", (d) => color(d.target.index))
+                .style("opacity", 0.7)
+                .attr("d", ribbon);
+
+            chordPaths.append("title")
+                .text((d) => `${data[d.source.index][d.target.index]}`);
+        });
+    </script>
+</body>
+</html>
+
+
+
